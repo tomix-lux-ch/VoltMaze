@@ -4,7 +4,7 @@ A neon 3D maze chase for the browser. Clear every energy pellet in the sector wh
 
 VoltMaze is an original game inspired by two classics: the first-person maze shooting of the 1980s and the pellet-and-chaser arcade games of the same era. It runs on PC, Mac, iPhone, Android and tablets, and can be installed as an app that works offline.
 
-**Play:** `https://YOUR-NAME.github.io/voltmaze/` *(replace with your GitHub Pages address)*
+**Play:** [tomix-lux-ch.github.io/VoltMaze](https://tomix-lux-ch.github.io/VoltMaze/)
 
 ---
 
