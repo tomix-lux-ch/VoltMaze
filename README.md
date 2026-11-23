@@ -111,64 +111,30 @@ Open **SETTINGS** on the title or pause screen. Everything is remembered in the 
 | Screen shake | On / off |
 | Sector intro | On / off |
 
-## Versions
+## Offline version
 
-| File | What it is |
-|---|---|
-| `app/` | Installable web app (PWA) with icon, fullscreen and offline play. This is the folder to put online. |
-| `voltmaze-full.html` | One file with everything inside. Works completely offline: double-click it, or copy it to a phone. |
-| `voltmaze.html` | One small file. Needs internet for the 3D engine and the font. |
-| `index.html` | The development version, which loads the files in `js/`. |
+Want the game as a single file? Download **voltmaze-full.html** from the [Releases](https://github.com/tomix-lux-ch/VoltMaze/releases) page. It has everything inside and works without internet: double-click it on a PC, or copy it to a phone and open it in the browser.
 
 ## Install as an app
 
-Once the `app` folder is online over HTTPS (for example on GitHub Pages):
+- **iPhone / iPad:** open the [game](https://tomix-lux-ch.github.io/VoltMaze/) in **Safari**, tap **Share**, then **Add to Home Screen**.
+- **Android:** open the [game](https://tomix-lux-ch.github.io/VoltMaze/) in **Chrome**, then tap **⋮**, then **Install app** (or **Add to Home screen**).
 
-- **iPhone / iPad:** open the address in **Safari**, tap **Share**, then **Add to Home Screen**.
-- **Android:** open the address in **Chrome**, then tap **⋮**, then **Install app** (or **Add to Home screen**).
+After the first visit the game also runs offline. When a new version comes out, the app updates itself on the next visit with internet.
 
-After the first visit the game also runs offline. When a new version is uploaded, the app updates itself on the next visit with internet.
+## About this repository
 
-## Run it locally
+This repository holds the finished, installable web app (PWA) that GitHub Pages serves:
 
-You need [Python 3](https://www.python.org/). In the project folder, run:
+| File | What it is |
+|---|---|
+| `index.html` | The whole game: page, styles and code in one file |
+| `manifest.webmanifest` | App name, icons and colors for installing |
+| `sw.js` | Service worker for offline play |
+| `icons/` | App icons |
+| `preview.jpg` | Picture shown when the link is shared |
 
-```bash
-python -m http.server 8123
-```
-
-Then open `http://localhost:8123` in your browser.
-
-Test pages:
-- `http://localhost:8123/?showcase=1` shows the alien agents up close.
-- `http://localhost:8123/?showcase=phantoms` shows the phantoms.
-- `http://localhost:8123/?touch=1` forces the phone controls on a PC.
-
-## Build
-
-After changing the game, rebuild the single files and the app folder:
-
-```bash
-python build_single.py
-```
-
-This writes `voltmaze.html`, `voltmaze-full.html` and the `app/` folder. To redraw the app icons, run `python make_icons.py`.
-
-## Project structure
-
-```
-index.html          page layout, HUD and menus
-style.css           all styling (HUD, menus, touch controls)
-js/maze.js          maze generator and pathfinding
-js/models.js        3D models: robot, monsters, phantoms, aliens, boss, power-ups
-js/audio.js         sound effects and the generated music
-js/game.js          the game: rendering, AI, controls, settings, scores
-vendor/             Three.js r128 and the Orbitron font, for the offline builds
-build_single.py     builds voltmaze.html, voltmaze-full.html and app/
-make_icons.py       draws the app icons into app-icons/
-```
-
-Built with plain JavaScript and [Three.js](https://threejs.org/), with no build tools or frameworks. All graphics and sounds are generated in code.
+Built with plain JavaScript and [Three.js](https://threejs.org/), with no frameworks. All graphics and sounds are generated in code.
 
 ## Credits
 
