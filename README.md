@@ -70,6 +70,8 @@ In the **Map view**, the keys move you in screen directions (up = north) and the
 | Fire, jump | **FIRE** and **JUMP** buttons |
 | Map / 3D view, camera, pause | **MAP**, **CAM** and **II** buttons |
 
+Phones and tablets start in the Map view, which is easier to steer with a thumb. A **How to play** card opens on the first visit, and you can open it again from the title screen.
+
 ### Gamepad (Xbox style)
 
 | Action | Button |

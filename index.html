@@ -180,6 +180,53 @@ table.hs tr.mine td { color: #ffd23b; text-shadow: 0 0 8px #ffd23b; animation: b
 
 #overlay { overflow-y: auto; align-items: safe center; }
 
+/* ---------- How to play ---------- */
+#help { max-width: 600px; }
+.goals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.goals div { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px; font-size: 12px;
+  border: 1px solid rgba(127,232,255,.3); background: rgba(5,2,15,.5); }
+.goals b { color: var(--cyan); font-weight: 500; letter-spacing: .06em; }
+.goals span { font-size: 11px; opacity: .75; line-height: 1.4; }
+.ico { display: block; width: 26px; height: 26px; margin-bottom: 4px; border-radius: 50%; }
+.ico.pel { width: 12px; height: 12px; margin: 7px 0 11px; background: #ffe27a; box-shadow: 0 0 10px #ffd23b; }
+.ico.dro { background: radial-gradient(circle at 35% 35%, #ff8a9a, #ff2a48 60%, #7a0018); box-shadow: 0 0 12px #ff3048; }
+.ico.core { background: radial-gradient(circle, #fff 0 20%, var(--pink) 45%, transparent 72%); box-shadow: 0 0 14px var(--pink); }
+.phone { position: relative; display: flex; margin: 0 auto 10px; width: min(100%, 440px); aspect-ratio: 2.1 / 1;
+  border: 2px solid rgba(232,246,255,.55); border-radius: 18px; overflow: hidden; background: rgba(5,2,15,.6); }
+.zone { position: relative; flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; font-size: 11px; }
+.zone b { font-size: 14px; letter-spacing: .2em; color: var(--cyan); }
+.zone span { opacity: .75; line-height: 1.4; }
+.zone.left { border-right: 1px dashed rgba(127,232,255,.45); background: rgba(34,230,255,.06); }
+.zone.left .ring { width: 38px; height: 38px; border-radius: 50%; border: 2px solid rgba(34,230,255,.7); box-shadow: 0 0 10px rgba(34,230,255,.5);
+  background: radial-gradient(circle, rgba(34,230,255,.6) 0 32%, transparent 36%); animation: slide 2s ease-in-out infinite; }
+@keyframes slide { 0%, 100% { transform: translate(0, 0); } 30% { transform: translate(12px, -8px); } 65% { transform: translate(-10px, 6px); } }
+.zone.right { align-items: flex-start; padding-left: 14%; }
+.hb { position: absolute; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-style: normal; font-weight: 800; font-size: 9px; }
+.hb.fire { right: 7%; bottom: 9%; width: 25%; aspect-ratio: 1; border: 2px solid var(--pink); color: var(--pink); box-shadow: 0 0 10px rgba(255,79,216,.5); }
+.hb.jump { right: 36%; bottom: 8%; width: 18%; aspect-ratio: 1; border: 2px solid var(--cyan); color: var(--cyan); }
+.hb.sm { top: 8%; width: 12%; aspect-ratio: 1; font-size: 7px; border: 1px solid rgba(232,246,255,.5); }
+.hb.map { right: 52%; } .hb.cam { right: 6%; } .hb.pz { right: 22%; }
+.hnote { margin: 0 0 12px; font-size: 12px; line-height: 1.6; opacity: .85; }
+.hnote b { color: var(--cyan); font-weight: 500; }
+.hkeys { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; text-align: left; font-size: 12px; margin: 0 auto 14px; max-width: 520px; }
+.hkeys b { color: var(--cyan); font-weight: 500; }
+.hkeys .wide { grid-column: 1 / -1; }
+#overlay.helpOpen h1, #overlay.helpOpen #ovSub { display: none; }
+@media (max-height: 520px) and (min-width: 600px) {
+  #help { max-width: 760px; margin-top: 0; }
+  #help h2 { margin-bottom: 8px; }
+  body.touch .hgrid { display: grid; grid-template-columns: 1fr 1.35fr; gap: 14px; align-items: center; }
+  body.touch .goals { grid-template-columns: 1fr; gap: 6px; margin: 0; }
+  body.touch .goals div { flex-direction: row; flex-wrap: wrap; text-align: left; gap: 2px 10px; padding: 6px 10px; }
+  body.touch .goals .ico { margin: 0; flex: none; }
+  body.touch .goals .ico.pel { margin: 0 7px; }
+  body.touch .goals b { flex: 1; }
+  body.touch .goals span { flex-basis: 100%; padding-left: 36px; }
+  .phone { margin-bottom: 6px; }
+  .hnote { font-size: 11px; line-height: 1.5; margin-bottom: 0; }
+  #helpClose { margin-top: 10px; }
+}
+
 /* ---------- Demo mode ---------- */
 #demoTag { position: absolute; left: 0; right: 0; bottom: 18%; text-align: center; letter-spacing: .3em; font-size: 14px; color: var(--ink);
   text-shadow: 0 0 10px var(--cyan); animation: blink 1.4s ease-in-out infinite; }
@@ -268,7 +315,35 @@ body.touch #demoTag .touchOnly { display: inline; }
         <div><b>Retro joystick</b> stick moves / turns · <b>Button 1 / 3</b> fire · <b>Button 2 / 4</b> jump</div>
         <div class="tip">A hit blasts a monster back to its pen, but it comes back out. Grab a <span class="pink">power core</span> to overcharge: then they flee and are worth big points. Grab floating <span class="gold">power-ups</span> for spread shot, rapid fire, shield, freeze and turbo. Every 4th sector a boss waits. Watch out for the grey <span class="gold">alien agents</span>: their stun guns freeze you in place. Two hits beam them away.</div>
       </div>
-      <div class="opts" id="optsRow"><button type="button" id="setBtn" class="opt">SETTINGS</button> <button type="button" id="hsBtn" class="opt">HIGH SCORES</button></div>
+      <div class="opts" id="optsRow"><button type="button" id="helpBtn" class="opt">HOW TO PLAY</button> <button type="button" id="setBtn" class="opt">SETTINGS</button> <button type="button" id="hsBtn" class="opt">HIGH SCORES</button></div>
+      </div>
+      <div id="help" class="sub hidden">
+        <h2>HOW TO PLAY</h2>
+        <div class="hgrid">
+        <div class="goals">
+          <div><i class="ico pel"></i><b>Eat every pellet</b><span>to clear the sector</span></div>
+          <div><i class="ico dro"></i><b>Dodge the drones</b><span>or shoot them back to their pen</span></div>
+          <div><i class="ico core"></i><b>Grab a power core</b><span>then the drones flee: hunt them!</span></div>
+        </div>
+        <div class="touchOnly">
+          <div class="phone">
+            <div class="zone left"><i class="ring"></i><b>MOVE</b><span>thumb down anywhere,<br>then slide</span></div>
+            <div class="zone right"><b>AIM</b><span>drag</span>
+              <i class="hb fire">FIRE</i><i class="hb jump">JUMP</i>
+              <i class="hb sm map">MAP</i><i class="hb sm cam">CAM</i><i class="hb sm pz">II</i>
+            </div>
+          </div>
+          <p class="hnote">You start in the <b>Map view</b>: slide the way you want to go, the robot turns by itself. Tap <b>MAP</b> to switch to 3D.<br>Turn your phone sideways for the best view.</p>
+        </div>
+        </div>
+        <div class="deskOnly hkeys">
+          <div><b>WASD / Arrows</b> move</div><div><b>Mouse</b> look (click into the game)</div>
+          <div><b>Click / Space</b> fire</div><div><b>Shift / Right-click</b> jump</div>
+          <div><b>Tab</b> map / 3D view</div><div><b>P</b> pause</div>
+          <div class="wide"><b>Gamepad</b> left stick move, right stick look, RT fire, A jump</div>
+          <div class="wide"><b>Retro joystick</b> stick moves and turns, buttons fire and jump</div>
+        </div>
+        <button type="button" class="opt" id="helpClose">GOT IT</button>
       </div>
       <div id="settings" class="sub hidden">
         <h2>SETTINGS</h2>
@@ -2389,8 +2464,9 @@ const Models = (() => {
   const D = () => DIFFS[cfg.difficulty];
   let composer = null, renderPass = null, bloomOn = cfg.bloom;
   // Map view: the whole maze from above (slightly tilted so walls show depth), with the 3D view in a corner window.
-  let viewMode = 'chase';
-  try { if (localStorage.getItem('voltmaze.view') === 'map') viewMode = 'map'; } catch (e) { /* ignore */ }
+  // Phones and tablets start in the Map view (easier to steer with a thumb); PCs start in 3D. A saved choice wins.
+  let viewMode = TOUCH ? 'map' : 'chase';
+  try { const v = localStorage.getItem('voltmaze.view'); if (v === 'map' || v === 'chase') viewMode = v; } catch (e) { /* ignore */ }
   const MAP_TILT = 0.28;
   const mapCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 500);
   function fitMapCam() {
@@ -4000,11 +4076,12 @@ const Models = (() => {
     { label: 'SCREEN SHAKE', get: () => (cfg.shake ? 'ON' : 'OFF'), next: () => { cfg.shake = !cfg.shake; saveCfg(); } },
     { label: 'SECTOR INTRO', get: () => (cfg.intro ? 'ON' : 'OFF'), next: () => { cfg.intro = !cfg.intro; saveCfg(); } },
   ];
-  const sub = { settings: $('settings'), scores: $('scores'), name: $('nameEntry') };
+  const sub = { settings: $('settings'), scores: $('scores'), name: $('nameEntry'), help: $('help') };
   const ovMain = $('ovMain');
   function showSub(which, keepCta) {
     for (const k in sub) sub[k].classList.toggle('hidden', k !== which);
     ovMain.classList.toggle('hidden', !!which);
+    el.overlay.classList.toggle('helpOpen', which === 'help');
     el.ovCta.classList.toggle('hidden', !!which && !keepCta);
   }
   function closeSubs() { showSub(null); }
@@ -4073,6 +4150,12 @@ const Models = (() => {
   $('optsRow').addEventListener('click', ev => ev.stopPropagation());
   $('setBtn').addEventListener('click', () => { Sfx.init(); renderSettings(); showSub('settings'); });
   $('hsBtn').addEventListener('click', () => { lastEntry = -1; openScores(false); });
+  // How to play: opens by itself on the first visit from a phone or tablet, and from its button any time.
+  const HELP_KEY = 'voltmaze.help';
+  function closeHelp() { try { localStorage.setItem(HELP_KEY, '1'); } catch (e) { /* ignore */ } closeSubs(); }
+  $('helpBtn').addEventListener('click', () => { Sfx.init(); showSub('help'); });
+  $('helpClose').addEventListener('click', () => closeHelp());
+  if (TOUCH) { let seen = false; try { seen = !!localStorage.getItem(HELP_KEY); } catch (e) { /* ignore */ } if (!seen) showSub('help'); }
   $('setClose').addEventListener('click', () => closeSubs());
   $('hsClose').addEventListener('click', () => closeSubs());
   $('nameOk').addEventListener('click', () => submitName());
@@ -4235,6 +4318,7 @@ const Models = (() => {
   el.overlay.addEventListener('click', () => {
     Sfx.init(); idleT = 0;
     if (!sub.name.classList.contains('hidden')) return; // finish typing your initials first
+    if (!sub.help.classList.contains('hidden')) { closeHelp(); return; }
     if (!sub.settings.classList.contains('hidden') || (!sub.scores.classList.contains('hidden') && el.ovCta.classList.contains('hidden'))) { closeSubs(); return; }
     closeSubs();
     if (state === 'paused') { resume(); return; }
