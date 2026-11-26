@@ -3078,6 +3078,7 @@ const Models = (() => {
       e.state = 'leaving'; e.t = 1;
     }
     if (e.stun > 0) { e.stun -= dt; return; }
+    if (blockedAhead(e)) return; // queue up behind the one in front instead of stacking
     e.t += enemySpeed(e) * D().speed * dt;
     while (e.t >= 1) {
       e.t -= 1;
@@ -3087,6 +3088,27 @@ const Models = (() => {
       chooseNext(e);
       if (e.nx === e.cx && e.ny === e.cy) { e.t = 0; break; }
     }
+  }
+
+  // Drones moving the same way keep a small gap (in cells, centre to centre). Head-on drones may still pass through each other.
+  const ENEMY_GAP = 0.7;
+  const onBoard = e => e.state === 'active' || e.state === 'leaving';
+  function blockedAhead(e) {
+    if (!onBoard(e)) return false;
+    const dx = e.nx - e.cx, dy = e.ny - e.cy;
+    if (!dx && !dy) return false;
+    const ex = lerp(e.cx, e.nx, e.t), ey = lerp(e.cy, e.ny, e.t);
+    for (const o of enemies) {
+      if (o === e || !onBoard(o)) continue;
+      const ox = lerp(o.cx, o.nx, o.t) - ex, oy = lerp(o.cy, o.ny, o.t) - ey;
+      // Two drones heading into the same cell from different sides: the one further away gives way.
+      if (o.nx === e.nx && o.ny === e.ny && (o.cx !== e.cx || o.cy !== e.cy) && o.t > e.t && Math.hypot(ox, oy) < ENEMY_GAP + 0.5) return true;
+      if (Math.hypot(ox, oy) >= ENEMY_GAP || Math.abs(ox * dy - oy * dx) > 0.3) continue;
+      if (o.nx - o.cx === -dx && o.ny - o.cy === -dy) continue; // coming the other way
+      const ahead = ox * dx + oy * dy;
+      if (ahead > 0.01 || (ahead > -0.01 && o.i < e.i)) return true; // exactly level: the lower number goes first
+    }
+    return false;
   }
 
   function reverseEnemy(e) {
@@ -3195,8 +3217,36 @@ const Models = (() => {
     }
     if (!collides(player.x + vx, player.z)) player.x += vx;
     if (!collides(player.x, player.z + vz)) player.z += vz;
-    // Cornering assist: moving along one axis gently centers you in the corridor so side turns are easy to hit.
-    const step = PLAYER_SPEED * dt * 0.6;
+    centerInLane(mx, mz, dt, 0.6);
+    if (player.jy === 0) player.bob += dt * 11;
+  }
+
+  // Lanes: like the drones, the robot stays on the corridor's centre lines (within LANE units), so it can't
+  // scrape along walls or hide in a corner where passing drones would miss it. In each cell the allowed area is
+  // a cross: a horizontal band towards open neighbours left/right and a vertical band towards open ones up/down.
+  const LANE = 0.5;
+  function clampToLanes(mx, mz) {
+    const cx = Math.round(player.x / CELL), cy = Math.round(player.z / CELL);
+    if (solidForPlayer(cx, cy)) return;
+    const h = CELL / 2, ox = player.x - cx * CELL, oz = player.z - cy * CELL;
+    const cl = (v, a, b) => Math.max(a, Math.min(b, v));
+    const xLo = solidForPlayer(cx - 1, cy) ? -LANE : -h, xHi = solidForPlayer(cx + 1, cy) ? LANE : h;
+    const zLo = solidForPlayer(cx, cy - 1) ? -LANE : -h, zHi = solidForPlayer(cx, cy + 1) ? LANE : h;
+    const ax = cl(ox, xLo, xHi), az = cl(oz, -LANE, LANE); // horizontal band
+    const bx = cl(ox, -LANE, LANE), bz = cl(oz, zLo, zHi); // vertical band
+    const useA = (ax - ox) ** 2 + (az - oz) ** 2 <= (bx - ox) ** 2 + (bz - oz) ** 2;
+    let nx = useA ? ax : bx, nz = useA ? az : bz;
+    // Cornering: pushing sideways into an open side corridor slides you to the crossing so you can turn in.
+    if (useA && az !== oz && Math.abs(mz) > Math.abs(mx) && (oz > 0 ? zHi : -zLo) > LANE) nx = Math.sign(nx) * Math.max(0, Math.abs(nx) - Math.abs(oz - az));
+    if (!useA && bx !== ox && Math.abs(mx) > Math.abs(mz) && (ox > 0 ? xHi : -xLo) > LANE) nz = Math.sign(nz) * Math.max(0, Math.abs(nz) - Math.abs(ox - bx));
+    player.x = cx * CELL + nx;
+    player.z = cy * CELL + nz;
+  }
+
+  // Lane assist: moving along one axis gently pulls you to the middle of the corridor, like the drones,
+  // so you don't scrape along the walls and side turns are easy to hit.
+  function centerInLane(mx, mz, dt, strength) {
+    const step = PLAYER_SPEED * dt * strength;
     if (Math.abs(mx) > Math.abs(mz) * 2) {
       const cz = Math.round(player.z / CELL) * CELL, d = Math.max(-step, Math.min(step, cz - player.z));
       if (!collides(player.x, player.z + d)) player.z += d;
@@ -3204,7 +3254,6 @@ const Models = (() => {
       const cx = Math.round(player.x / CELL) * CELL, d = Math.max(-step, Math.min(step, cx - player.x));
       if (!collides(player.x + d, player.z)) player.x += d;
     }
-    if (player.jy === 0) player.bob += dt * 11;
   }
 
   function updatePlayer(dt) {
@@ -3212,8 +3261,11 @@ const Models = (() => {
       // Zapped: can't move, jump or shoot for a moment; sparks fly off the robot.
       playerStunT = Math.max(0, playerStunT - dt); player.moving = false; jumpQueued = false;
       if ((stunSparkT -= dt) <= 0) { stunSparkT = 0.09; explode(new THREE.Vector3(player.x + (Math.random() - 0.5), 0.6 + Math.random() * 0.8, player.z + (Math.random() - 0.5)), 0x9ff0ff, 3, 3); }
-    } else if (viewMode === 'map' || demo) mapMove(dt);
-    else chaseMove(dt);
+    } else {
+      const x0 = player.x, z0 = player.z;
+      if (viewMode === 'map' || demo) mapMove(dt); else chaseMove(dt);
+      clampToLanes(player.x - x0, player.z - z0);
+    }
     afterMove(dt);
   }
 
@@ -3243,6 +3295,7 @@ const Models = (() => {
       vx *= sp; vz *= sp;
       if (!collides(player.x + vx, player.z)) player.x += vx;
       if (!collides(player.x, player.z + vz)) player.z += vz;
+      centerInLane(vx, vz, dt, 0.35);
       if (player.jy === 0) player.bob += dt * 11;
     }
   }
@@ -4579,6 +4632,8 @@ const Models = (() => {
     get state() { return state; }, get score() { return score; }, get pellets() { return pelletsLeft; },
     mazeHash: () => g.map(r => r.join("")).join("|"), get jumpHeight() { return player.jy; }, jump: () => { jumpQueued = true; },
     enemies: () => enemies.map(e => ({ name: e.def.name, state: e.state, cell: [e.cx, e.cy], fright: e.fright, stun: +e.stun.toFixed(2) })),
+    enemyPos: () => enemies.map(e => ({ s: e.state, x: lerp(e.cx, e.nx, e.t), y: lerp(e.cy, e.ny, e.t), dx: e.nx - e.cx, dy: e.ny - e.cy })),
+    lanePlayer: () => ({ offX: +(player.x / CELL - Math.round(player.x / CELL)).toFixed(3), offZ: +(player.z / CELL - Math.round(player.z / CELL)).toFixed(3) }),
     player: () => ({ x: +player.x.toFixed(2), z: +player.z.toFixed(2), cell: playerCell }),
     start: () => { Sfx.init(); el.overlay.classList.add('hidden'); newGame(); },
     keys, shoot, overcharge: startOvercharge,
