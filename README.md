@@ -25,6 +25,7 @@ VoltMaze is an original game inspired by two classics: the first-person maze sho
 
   Pick their look: glossy spheres, detailed 3D monsters or translucent phantoms.
 - **Grey alien agents** (optional) with stun guns that freeze you in place.
+- **1 to 4 players:** choose the number of players on the start screen. In multiplayer, the other robots are computer-controlled rivals for now. They race you for the pellets and shoot at you, maze-shooter style.
 - **A boss every 4th sector:** the Overseer, an armored eye-engine that fires energy orbs and gets angrier as it takes damage.
 - **Power-ups:** spread shot, rapid fire, shield, freeze and turbo.
 - **Bonus crystals** worth more points in every sector.
@@ -39,6 +40,7 @@ VoltMaze is an original game inspired by two classics: the first-person maze sho
 - **Jumping:** jump over a drone to escape a dead end.
 - **Alien agents** stun you instead of killing you, but a stunned robot is easy prey. Two hits beam an agent away.
 - **Extra life** every 10,000 points.
+- **Players:** pick 1 to 4 on the start screen (or press 1 to 4). With 2 or more, rival robots collect pellets too. A shot robot is stunned for a moment and loses up to 100 points to the shooter. An overcharged robot can ram the others. Drones hunt whichever robot is closest, and a rival they catch is out for a few seconds. The scoreboard at the top left shows who leads the match.
 
 ## Controls
 
@@ -106,6 +108,7 @@ Open **SETTINGS** on the title or pause screen. Everything is remembered in the 
 | View | 3D or map |
 | Opponents | Spheres, 3D monsters or phantoms |
 | Aliens | On / off |
+| Players | 1 (solo) to 4. Also on the start screen. |
 | Walls | Stone or brick |
 | Music volume | 0 to 100 % |
 | Sound FX | On / off |

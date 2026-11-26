@@ -239,6 +239,22 @@ body.touch #demoTag .touchOnly { display: inline; }
 .slider input[type=range] { flex: 1; accent-color: #7fe8ff; cursor: pointer; touch-action: pan-x; }
 .slider output { width: 3.2em; text-align: right; color: #7fe8ff; font-size: 12px; }
 
+/* ---------- Rival robots: match scoreboard ---------- */
+#board { position: absolute; top: 74px; left: 20px; display: flex; flex-direction: column; gap: 3px; font-size: 11px; letter-spacing: .14em; }
+#board div { display: flex; align-items: center; gap: 7px; opacity: .8; text-shadow: 0 0 6px rgba(0,0,0,.9); }
+#board div.you { opacity: 1; color: var(--cyan); }
+#board i { width: 8px; height: 8px; border-radius: 50%; }
+#board b { margin-left: auto; padding-left: 12px; font-variant-numeric: tabular-nums; }
+body.touch #board { top: calc(54px + env(safe-area-inset-top)); left: calc(12px + env(safe-area-inset-left)); font-size: 9px; }
+body.touch.tablet #board { top: calc(74px + env(safe-area-inset-top)); font-size: 11px; }
+
+/* ---------- Player count on the start screen ---------- */
+.players { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; font-size: 12px; letter-spacing: .2em; }
+.players span { margin-right: 6px; opacity: .85; }
+.players .opt { min-width: 46px; padding: 8px 0; }
+.players .opt.on { color: #05020f; background: #7fe8ff; box-shadow: 0 0 14px rgba(127,232,255,.7); }
+.pnote { flex-basis: 100%; font-size: 11px; letter-spacing: .08em; opacity: .7; }
+
 </style>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -277,6 +293,7 @@ body.touch #demoTag .touchOnly { display: inline; }
     <div id="msg"></div>
     <div id="msgSub"></div>
     <div id="powers"></div>
+    <div id="board"></div>
     <div id="bossbar"><span>THE OVERSEER</span><i><b id="bossHp"></b></i></div>
     <div id="shieldFx"></div>
     <div id="demoTag" class="hidden"><b>DEMO</b><span class="deskOnly">PRESS ANY KEY OR CLICK TO PLAY</span><span class="touchOnly">TAP TO PLAY</span></div>
@@ -314,6 +331,10 @@ body.touch #demoTag .touchOnly { display: inline; }
         <div><b>Gamepad</b> sticks move / look · <b>RT</b> fire · <b>A</b> jump · <b>Y</b> camera · <b>Back</b> map · <b>Start</b> pause</div>
         <div><b>Retro joystick</b> stick moves / turns · <b>Button 1 / 3</b> fire · <b>Button 2 / 4</b> jump</div>
         <div class="tip">A hit blasts a monster back to its pen, but it comes back out. Grab a <span class="pink">power core</span> to overcharge: then they flee and are worth big points. Grab floating <span class="gold">power-ups</span> for spread shot, rapid fire, shield, freeze and turbo. Every 4th sector a boss waits. Watch out for the grey <span class="gold">alien agents</span>: their stun guns freeze you in place. Two hits beam them away.</div>
+      </div>
+      <div class="players" id="playersRow"><span>PLAYERS</span>
+        <button type="button" class="opt" data-n="1">1</button><button type="button" class="opt" data-n="2">2</button><button type="button" class="opt" data-n="3">3</button><button type="button" class="opt" data-n="4">4</button>
+        <div class="pnote" id="playersNote"></div>
       </div>
       <div class="opts" id="optsRow"><button type="button" id="helpBtn" class="opt">HOW TO PLAY</button> <button type="button" id="setBtn" class="opt">SETTINGS</button> <button type="button" id="hsBtn" class="opt">HIGH SCORES</button></div>
       </div>
@@ -1829,11 +1850,13 @@ const Models = (() => {
   }
 
   // ---------------- Player robot ----------------
-  function robot() {
+  // opts.shell / opts.eye recolor it for rival robots.
+  function robot(opts = {}) {
     const group = new THREE.Group();
-    const shell = std(0x9c98ad, { roughness: 0.35, metalness: 0.25 });
+    const EYE = opts.eye || 0x3ab8ff;
+    const shell = std(opts.shell || 0x9c98ad, { roughness: 0.35, metalness: 0.25 });
     const dark = std(0x15161f, { roughness: 0.15, metalness: 0.4, side: THREE.DoubleSide });
-    const eyeMat = glow(0x3ab8ff, 2.2);
+    const eyeMat = glow(EYE, 2.2);
     const body = new THREE.Group();
     body.add(mesh(new THREE.CylinderGeometry(0.78, 0.84, 0.42, 40), shell, 0, 0.3, 0));
     const dome = mesh(new THREE.SphereGeometry(0.78, 40, 20, 0, TAU, 0, Math.PI / 2), shell, 0, 0.51, 0); dome.scale.y = 0.9;
@@ -1848,13 +1871,13 @@ const Models = (() => {
     }
     const nose = mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.45, 20), shell, 0, 0.42, -0.92); nose.rotation.x = Math.PI / 2;
     const muzzle = mesh(new THREE.TorusGeometry(0.1, 0.03, 8, 20), dark, 0, 0.42, -1.14);
-    const muzzleGlow = mesh(new THREE.CircleGeometry(0.08, 16), glow(0x3ab8ff, 1), 0, 0.42, -1.13); muzzleGlow.rotation.y = Math.PI;
+    const muzzleGlow = mesh(new THREE.CircleGeometry(0.08, 16), glow(EYE, 1), 0, 0.42, -1.13); muzzleGlow.rotation.y = Math.PI;
     body.add(nose, muzzle, muzzleGlow);
     group.add(body);
     let blinkT = 2;
     return {
       group,
-      setCharged(on) { const c = on ? 0xff4fd8 : 0x3ab8ff; eyeMat.color.setHex(c); eyeMat.emissive.setHex(c); muzzleGlow.material.color.setHex(c); muzzleGlow.material.emissive.setHex(c); },
+      setCharged(on) { const c = on ? 0xff4fd8 : EYE; eyeMat.color.setHex(c); eyeMat.emissive.setHex(c); muzzleGlow.material.color.setHex(c); muzzleGlow.material.emissive.setHex(c); },
       animate(t, dt, moving, recoil) {
         body.position.y = 0.06 + Math.sin(t * 6) * 0.03;
         body.rotation.x = moving ? -0.08 : 0;
@@ -2390,6 +2413,16 @@ const Models = (() => {
     { name: 'Drifter', color: 0xffa42b, ai: 'drift', release: 6 },   // wanders until it sees you down a corridor
     { name: 'Warden',  color: 0x7dff4a, ai: 'ward',  release: 10 },  // guards the power core nearest to you
   ];
+  // Robots in the maze ("racers"): you (index 0) and up to three rival robots, each with its own color.
+  const RACERS = [
+    { name: 'YOU', color: 0x3ab8ff },
+    { name: 'AMBER', color: 0xffa21f, shell: 0xc29a62 },
+    { name: 'VIOLET', color: 0xb46bff, shell: 0x8f7cb8 },
+    { name: 'IVORY', color: 0xf4f0e0, shell: 0xdcd8cc },
+  ];
+  // Rivals move a little slower than you, stay out for RIVAL_OUT s when a drone gets them,
+  // and a shot robot is stunned for SHOT_STUN s and loses up to SHOT_STEAL points to the shooter.
+  const RIVAL_SPEED = 0.82, RIVAL_OUT = 3, SHOT_STUN = 1.2, SHOT_STEAL = 100, RAM_STEAL = 200, BOT_REACT = 0.45;
   const SPAWNS = [{ x: 10, y: 9 }, { x: 9, y: 10 }, { x: 11, y: 10 }, { x: 10, y: 11 }];
   const SCATTER = [{ x: N - 2, y: 1 }, { x: 1, y: 1 }, { x: 1, y: N - 2 }, { x: N - 2, y: N - 2 }];
   const MODES = [['scatter', 5], ['chase', 20], ['scatter', 5], ['chase', 25], ['scatter', 4], ['chase', 1e9]];
@@ -2450,10 +2483,11 @@ const Models = (() => {
   scene.add(playerLight);
 
   // Settings kept in one place (difficulty, music, sound, bloom, screen shake, sector intro); remembered in the browser.
-  const cfg = { difficulty: 'normal', music: true, musicVol: 100, sound: true, bloom: true, shake: true, intro: true };
+  const cfg = { difficulty: 'normal', music: true, musicVol: 100, sound: true, bloom: true, shake: true, intro: true, rivals: 0 };
   try { Object.assign(cfg, JSON.parse(localStorage.getItem('voltmaze.settings') || '{}')); } catch (e) { /* ignore */ }
   if (cfg.music === false && cfg.musicVol === 100) cfg.musicVol = 0; // older saved 'music off'
   cfg.musicVol = Math.max(0, Math.min(100, Math.round(+cfg.musicVol || 0)));
+  cfg.rivals = Math.max(0, Math.min(3, cfg.rivals | 0));
   const saveCfg = () => { try { localStorage.setItem('voltmaze.settings', JSON.stringify(cfg)); } catch (e) { /* ignore */ } };
   const DIFFS = {
     easy: { name: 'EASY', speed: 0.82, charge: 1.4, lives: 5, stun: 1.0, boss: 0.7 },
@@ -2675,7 +2709,7 @@ const Models = (() => {
   const isBossLevel = () => level % BOSS_EVERY === 0;
   const bossNum = () => Math.max(1, Math.floor(level / BOSS_EVERY));
   let playerCell = { x: -1, y: -1 };
-  let overchargeT = 0, overchargeMax = 1, combo = 0, modeIdx = 0, modeT = 0;
+  let overchargeT = 0, overchargeMax = 1, combo = 0, modeIdx = 0, modeT = 0, chargeOwner = null; // null = you
   let readyT = 0, dyingT = 0, clearT = 0, fireCD = 0, pulseT = 0, flashA = 0, recoil = 0, time = 0;
   const keys = {};
   let shootHeld = false, locked = false;
@@ -2979,7 +3013,7 @@ const Models = (() => {
       e.grp.visible = true; e.light.intensity = 1.0;
     });
     bolts.forEach(b => scene.remove(b.mesh)); bolts.length = 0;
-    overchargeT = 0; combo = 0; modeIdx = 0; modeT = 0;
+    overchargeT = 0; combo = 0; modeIdx = 0; modeT = 0; chargeOwner = null;
     for (const k in powers) powers[k] = 0;
     invulnT = 0; wheelT = 0;
     orbs.forEach(o => scene.remove(o.mesh)); orbs.length = 0;
@@ -2987,6 +3021,7 @@ const Models = (() => {
     playerStunT = 0;
     if (boss && boss.alive) Object.assign(boss, { cx: boss.home.x, cy: boss.home.y, nx: boss.home.x, ny: boss.home.y, t: 0, dir: { x: 0, y: 0 }, shotT: 3, stun: 0 });
     updatePlayerCell(true);
+    resetRivals();
     const nAgents = agentCount();
     agents.forEach((a, i) => { a.active = i < nAgents; if (a.active) spawnAgent(a, 2.5 + i * 3.5); else { a.state = 'gone'; a.grp.visible = false; } });
   }
@@ -3003,8 +3038,8 @@ const Models = (() => {
   const pf = o => { const v = fieldAt(playerField, o); return v < 0 ? 999 : v; };
   const sameDir = (a, b) => a.x === b.x && a.y === b.y;
 
-  function facingDir() {
-    const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+  function facingDir(yaw = player.yaw) {
+    const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
     return Math.abs(fx) > Math.abs(fz) ? { x: Math.sign(fx), y: 0 } : { x: 0, y: Math.sign(fz) };
   }
 
@@ -3014,13 +3049,26 @@ const Models = (() => {
     return false;
   }
 
+  // Each drone hunts the robot nearest to it by path length: you or a rival.
+  function huntTarget(e) {
+    const at = { x: e.cx, y: e.cy };
+    let T = { cell: playerCell, field: playerField, yaw: player.yaw }, bd = fieldAt(playerField, at);
+    if (bd < 0) bd = 999;
+    for (const r of rivals) {
+      if (!r.active || r.state !== 'play' || !r.field) continue;
+      let d = fieldAt(r.field, at); if (d < 0) d = 999;
+      if (d < bd) { bd = d; T = { cell: r.cell, field: r.field, yaw: r.body.yaw }; }
+    }
+    return T;
+  }
   function chaseChoice(e, choices) {
-    const P = playerCell, here = playerField[e.cy][e.cx];
+    const T = huntTarget(e), P = T.cell, here = fieldAt(T.field, { x: e.cx, y: e.cy });
+    const pf = o => { const v = fieldAt(T.field, o); return v < 0 ? 999 : v; };
     switch (e.def.ai) {
       case 'hunt': return minBy(choices, pf);
       case 'flank': {
         if (here >= 0 && here <= 3) return minBy(choices, pf);
-        const f = facingDir(), t = { x: P.x + f.x * 4, y: P.y + f.y * 4 };
+        const f = facingDir(T.yaw), t = { x: P.x + f.x * 4, y: P.y + f.y * 4 };
         return minBy(choices, o => d2(o, t));
       }
       case 'drift': {
@@ -3046,7 +3094,7 @@ const Models = (() => {
     if (!choices.length) choices = opts;
     let p;
     if (e.state === 'leaving') p = minBy(choices, o => (fieldAt(exitField, o) < 0 ? 999 : fieldAt(exitField, o)));
-    else if (e.fright) p = Math.random() < 0.3 ? rnd(choices) : maxBy(choices, o => fieldAt(playerField, o));
+    else if (e.fright) { const f = huntTarget(e).field; p = Math.random() < 0.3 ? rnd(choices) : maxBy(choices, o => fieldAt(f, o)); }
     else if (mode() === 'scatter') p = minBy(choices, o => d2(o, SCATTER[e.i]));
     else p = chaseChoice(e, choices);
     e.nx = p.x; e.ny = p.y; e.dir = { x: p.d.x, y: p.d.y };
@@ -3225,10 +3273,10 @@ const Models = (() => {
   // scrape along walls or hide in a corner where passing drones would miss it. In each cell the allowed area is
   // a cross: a horizontal band towards open neighbours left/right and a vertical band towards open ones up/down.
   const LANE = 0.5;
-  function clampToLanes(mx, mz) {
-    const cx = Math.round(player.x / CELL), cy = Math.round(player.z / CELL);
+  function clampToLanes(mx, mz, b = player) {
+    const cx = Math.round(b.x / CELL), cy = Math.round(b.z / CELL);
     if (solidForPlayer(cx, cy)) return;
-    const h = CELL / 2, ox = player.x - cx * CELL, oz = player.z - cy * CELL;
+    const h = CELL / 2, ox = b.x - cx * CELL, oz = b.z - cy * CELL;
     const cl = (v, a, b) => Math.max(a, Math.min(b, v));
     const xLo = solidForPlayer(cx - 1, cy) ? -LANE : -h, xHi = solidForPlayer(cx + 1, cy) ? LANE : h;
     const zLo = solidForPlayer(cx, cy - 1) ? -LANE : -h, zHi = solidForPlayer(cx, cy + 1) ? LANE : h;
@@ -3239,20 +3287,20 @@ const Models = (() => {
     // Cornering: pushing sideways into an open side corridor slides you to the crossing so you can turn in.
     if (useA && az !== oz && Math.abs(mz) > Math.abs(mx) && (oz > 0 ? zHi : -zLo) > LANE) nx = Math.sign(nx) * Math.max(0, Math.abs(nx) - Math.abs(oz - az));
     if (!useA && bx !== ox && Math.abs(mx) > Math.abs(mz) && (ox > 0 ? xHi : -xLo) > LANE) nz = Math.sign(nz) * Math.max(0, Math.abs(nz) - Math.abs(ox - bx));
-    player.x = cx * CELL + nx;
-    player.z = cy * CELL + nz;
+    b.x = cx * CELL + nx;
+    b.z = cy * CELL + nz;
   }
 
   // Lane assist: moving along one axis gently pulls you to the middle of the corridor, like the drones,
   // so you don't scrape along the walls and side turns are easy to hit.
-  function centerInLane(mx, mz, dt, strength) {
+  function centerInLane(mx, mz, dt, strength, b = player) {
     const step = PLAYER_SPEED * dt * strength;
     if (Math.abs(mx) > Math.abs(mz) * 2) {
-      const cz = Math.round(player.z / CELL) * CELL, d = Math.max(-step, Math.min(step, cz - player.z));
-      if (!collides(player.x, player.z + d)) player.z += d;
+      const cz = Math.round(b.z / CELL) * CELL, d = Math.max(-step, Math.min(step, cz - b.z));
+      if (!collides(b.x, b.z + d)) b.z += d;
     } else if (Math.abs(mz) > Math.abs(mx) * 2) {
-      const cx = Math.round(player.x / CELL) * CELL, d = Math.max(-step, Math.min(step, cx - player.x));
-      if (!collides(player.x + d, player.z)) player.x += d;
+      const cx = Math.round(b.x / CELL) * CELL, d = Math.max(-step, Math.min(step, cx - b.x));
+      if (!collides(b.x + d, b.z)) b.x += d;
     }
   }
 
@@ -3319,13 +3367,7 @@ const Models = (() => {
     const { x: cx, y: cy } = playerCell;
     const dist = Math.hypot(player.x - cx * CELL, player.z - cy * CELL);
     const k = pelletIdx[cy] ? pelletIdx[cy][cx] : -1;
-    if (k >= 0 && pelletAlive[k] && dist < 1.8) {
-      pelletAlive[k] = 0; pelletsLeft--;
-      const zero = new THREE.Matrix4().makeScale(0, 0, 0);
-      pelletMesh.setMatrixAt(k, zero); pelletGlow.setMatrixAt(k, zero);
-      pelletMesh.instanceMatrix.needsUpdate = pelletGlow.instanceMatrix.needsUpdate = true;
-      addScore(10); Sfx.pellet();
-    }
+    if (k >= 0 && pelletAlive[k] && dist < 1.8) { eatPellet(k); addScore(10); Sfx.pellet(); }
     const core = cores.find(c => c.alive && c.x === cx && c.y === cy);
     if (core && dist < 2) {
       core.alive = false; core.grp.visible = false; core.light.intensity = 0;
@@ -3339,7 +3381,7 @@ const Models = (() => {
   // ---------- Demo mode (attract mode) ----------
   // After the title screen sits idle, the robot plays by itself. Any key, click, tap or button returns to the title.
   const DEMO_IDLE = 15, DEMO_MAX = 90;
-  let demo = false, idleT = 0, demoT = 0, demoPlan = null, demoThinkT = 0;
+  let demo = false, idleT = 0, demoT = 0;
   const demoIn = { x: 0, z: 0 };
   function startDemo() {
     demo = true; demoT = 0; idleT = 0;
@@ -3347,6 +3389,7 @@ const Models = (() => {
     el.overlay.classList.add('hidden');
     $('demoTag').classList.remove('hidden');
     score = 0; lives = 3; level = 1; nextExtra = 1e12;
+    rivals.forEach(r => { r.score = 0; });
     colorOffset = Math.floor(Math.random() * THEMES.length);
     buildLevel(); resetPositions(); toReady(true);
   }
@@ -3362,18 +3405,29 @@ const Models = (() => {
   }
   // Any real input during the demo ends it; on the title screen it resets the idle timer.
   function userInput() { idleT = 0; if (demo) { endDemo(); return true; } return false; }
-  // A tiny pathfinding brain: head for the nearest pellet (or a fleeing monster, power-up or crystal),
-  // treating cells next to dangerous monsters as blocked; shoot what is ahead; jump when cornered.
+  // The demo robot uses the same bot brain as the rivals.
+  const demoBrain = { plan: null, thinkT: 0 }, demoOut = { mx: 0, mz: 0, fire: false, jump: false };
   function demoThink(dt) {
     demoT += dt;
     if (demoT > DEMO_MAX) { endDemo(); return; }
-    const P = playerCell, threats = [];
+    botSteer(player, playerCell, demoBrain, dt, demoOut);
+    demoIn.x = demoOut.mx; demoIn.z = demoOut.mz; shootHeld = demoOut.fire;
+    if (demoOut.jump) jumpQueued = true;
+  }
+
+  // A tiny pathfinding brain: head for the nearest pellet (or a fleeing monster, power-up or crystal),
+  // treating cells next to dangerous monsters as blocked; shoot what is ahead; jump when cornered.
+  // b = the robot's body {x, z, yaw, jy}, cell = its grid cell, brain = its memory, out = its input.
+  function botSteer(b, cell, brain, dt, out) {
+    const P = cell, threats = [];
     for (const e of enemies) if ((e.state === 'active' || e.state === 'leaving') && !e.fright && e.stun <= 0) threats.push({ x: Math.round(lerp(e.cx, e.nx, e.t)), y: Math.round(lerp(e.cy, e.ny, e.t)) });
     for (const a of agents) if (a.active && a.state !== 'gone' && a.stun <= 0) threats.push({ x: Math.round(lerp(a.cx, a.nx, a.t)), y: Math.round(lerp(a.cy, a.ny, a.t)) });
     if (boss && boss.alive) threats.push({ x: Math.round(lerp(boss.cx, boss.nx, boss.t)), y: Math.round(lerp(boss.cy, boss.ny, boss.t)) });
-    const danger = (x, y) => threats.some(t => Math.abs(t.x - x) + Math.abs(t.y - y) <= 1);
-    if ((demoThinkT -= dt) <= 0 || !demoPlan) {
-      demoThinkT = 0.12;
+    // Rivals only notice drones within brain.sight cells, so they sometimes run into trouble like a human would.
+    const seen = brain.sight ? threats.filter(q => Math.abs(q.x - P.x) + Math.abs(q.y - P.y) <= brain.sight) : threats;
+    const danger = (x, y) => seen.some(q => Math.abs(q.x - x) + Math.abs(q.y - y) <= 1);
+    if ((brain.thinkT -= dt) <= 0 || !brain.plan) {
+      brain.thinkT = brain.rate || 0.12; // rivals think a bit slower than the demo robot, so drones can catch them
       const prey = enemies.filter(e => e.fright && e.state === 'active').map(e => ({ x: e.cx, y: e.cy }));
       const goal = (x, y) => {
         if (prey.some(q => q.x === x && q.y === y)) return true;
@@ -3384,8 +3438,9 @@ const Models = (() => {
         return k >= 0 && pelletAlive[k] === 1;
       };
       // BFS from the robot's cell
-      const prev = new Int32Array(N * N).fill(-1), seen = new Uint8Array(N * N), q = [P.y * N + P.x];
-      seen[q[0]] = 1;
+      const sx = Math.max(0, Math.min(N - 1, P.x)), start = P.y * N + sx;
+      const prev = new Int32Array(N * N).fill(-1), seen = new Uint8Array(N * N), q = [start];
+      seen[start] = 1;
       let found = -1;
       for (let qi = 0; qi < q.length && found < 0; qi++) {
         const id = q[qi], x = id % N, y = (id / N) | 0;
@@ -3400,27 +3455,250 @@ const Models = (() => {
       }
       if (found >= 0) {
         let id = found;
-        while (prev[id] !== P.y * N + P.x && prev[id] >= 0) id = prev[id];
-        demoPlan = { x: id % N, y: (id / N) | 0 };
+        while (prev[id] !== start && prev[id] >= 0) id = prev[id];
+        brain.plan = { x: id % N, y: (id / N) | 0 };
       } else {
         // Cornered: step to the neighbor farthest from all threats.
         const opts = DIRS.map(d => ({ x: P.x + d.x, y: P.y + d.y })).filter(o => !solidForPlayer(o.x, o.y) && o.x >= 0 && o.x < N);
-        demoPlan = opts.length ? maxBy(opts, o => Math.min(99, ...threats.map(t => Math.abs(t.x - o.x) + Math.abs(t.y - o.y)))) : null;
+        brain.plan = opts.length ? maxBy(opts, o => Math.min(99, ...threats.map(q => Math.abs(q.x - o.x) + Math.abs(q.y - o.y)))) : null;
       }
     }
-    demoIn.x = demoIn.z = 0;
-    if (demoPlan) {
-      const tx = demoPlan.x * CELL - player.x, tz = demoPlan.y * CELL - player.z, d = Math.hypot(tx, tz);
-      if (d > 0.25) { demoIn.x = tx / d; demoIn.z = tz / d; } else demoThinkT = 0;
+    out.mx = out.mz = 0; out.fire = false; out.jump = false;
+    if (brain.plan) {
+      const tx = brain.plan.x * CELL - b.x, tz = brain.plan.y * CELL - b.z, d = Math.hypot(tx, tz);
+      if (d > 0.25) { out.mx = tx / d; out.mz = tz / d; } else brain.thinkT = 0;
     }
     // Shoot whatever dangerous thing is straight ahead; jump if one is about to touch us.
-    const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
-    shootHeld = false;
-    for (const t of threats) {
-      const dx = t.x * CELL - player.x, dz = t.y * CELL - player.z, d = Math.hypot(dx, dz);
-      if (d < 26 && (dx * fx + dz * fz) / (d || 1) > 0.92 && clearShot(player.x, player.z, t.x * CELL, t.y * CELL)) shootHeld = true;
-      if (d < 3.2 && player.jy === 0 && Math.random() < 0.15) jumpQueued = true;
+    const fx = -Math.sin(b.yaw), fz = -Math.cos(b.yaw);
+    for (const q of threats) {
+      const dx = q.x * CELL - b.x, dz = q.y * CELL - b.z, d = Math.hypot(dx, dz);
+      if (d < 26 && (dx * fx + dz * fz) / (d || 1) > 0.92 && clearShot(b.x, b.z, q.x * CELL, q.y * CELL)) out.fire = true;
+      if (d < 3.2 && b.jy === 0 && Math.random() < 0.15) out.jump = true;
     }
+  }
+
+  // ---------- Racers: rival robots ----------
+  // Every robot in the maze is a racer. Index 0 is you, driven by the player code above. A rival is driven by an
+  // input source that fills r.input with world-space intents {mx, mz, aim, fire, jump}: today a bot brain (kind
+  // 'bot'). A second local controller (split screen) or a remote player (online) only has to fill the same fields;
+  // driveRacer() then moves the robot with the same lane rules, gates and pickups as the player.
+  // Points have an owner: null means you, otherwise the rival (see give()).
+  const rivals = RACERS.slice(1).map((def, k) => {
+    const model = Models.robot({ shell: def.shell, eye: def.color });
+    const glow = floorGlow(def.color, 2.6, 0.55); glow.position.y = 0.03; model.group.add(glow);
+    const shieldFx = new THREE.Mesh(shieldBubble.geometry, shieldBubble.material);
+    shieldFx.position.y = 0.7; shieldFx.visible = false; model.group.add(shieldFx);
+    const marker = new THREE.Mesh(mapMarker.geometry, new THREE.MeshBasicMaterial({ color: def.color, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false }));
+    marker.rotation.x = -Math.PI / 2; marker.visible = false; scene.add(marker);
+    model.group.visible = false; scene.add(model.group);
+    return { i: k + 1, name: def.name, color: def.color, kind: 'bot', active: false, state: 'out', outT: 0, safeT: 0, stunT: 0,
+      body: { x: 0, z: 0, yaw: 0, jy: 0, vy: 0, moving: false }, cell: { x: -1, y: -1 }, field: null, home: { x: 1, y: 1 },
+      score: 0, fireCD: 0, recoil: 0, powers: { spread: 0, rapid: 0, shield: 0, speed: 0 },
+      input: { mx: 0, mz: 0, aim: null, fire: false, jump: false }, brain: { plan: null, thinkT: 0, seenT: 0, rate: 0.3, sight: 3 },
+      model, shieldFx, marker, boltMat: new THREE.MeshBasicMaterial({ color: def.color }) };
+  });
+  const rivalCount = () => Math.max(0, Math.min(3, cfg.rivals | 0));
+  const rivalsOn = () => rivals.some(r => r.active);
+  function give(r, n) { if (!r) addScore(n); else r.score += n; }
+  const hexCol = c => '#' + c.toString(16).padStart(6, '0');
+  // Standings for the scoreboard: you and the active rivals, best first.
+  function standings() {
+    const s = [{ name: 'YOU', color: RACERS[0].color, score, you: true }];
+    for (const r of rivals) if (r.active) s.push({ name: r.name, color: r.color, score: r.score });
+    return s.sort((a, b) => b.score - a.score);
+  }
+
+  // Start cells: the open cells nearest to three corners of the maze.
+  function pickHomes() {
+    const corners = [{ x: 1, y: 1 }, { x: N - 2, y: 1 }, { x: 1, y: N - 2 }];
+    rivals.forEach((r, k) => {
+      let best = r.home, bd = Infinity;
+      for (let y = 1; y < N - 1; y++) for (let x = 1; x < N - 1; x++) {
+        if (g[y][x] !== 0 || Maze.isPen(x, y)) continue;
+        const d = d2({ x, y }, corners[k]);
+        if (d < bd) { bd = d; best = { x, y }; }
+      }
+      r.home = best;
+    });
+  }
+  function updateRacerCell(r, force) {
+    const cx = Math.round(r.body.x / CELL), cy = Math.round(r.body.z / CELL);
+    if (force || cx !== r.cell.x || cy !== r.cell.y) { r.cell = { x: cx, y: cy }; r.field = Maze.bfs(g, cx, cy, false, false); }
+  }
+  function spawnRival(r) {
+    Object.assign(r.body, { x: r.home.x * CELL, z: r.home.y * CELL, yaw: 0, jy: 0, vy: 0, moving: false });
+    r.state = 'play'; r.safeT = 1.5; r.stunT = 0; r.fireCD = 1; r.brain.plan = null; r.brain.seenT = 0;
+    Object.assign(r.input, { mx: 0, mz: 0, aim: null, fire: false, jump: false });
+    updateRacerCell(r, true);
+  }
+  // A new life or sector: every active rival back to its corner. Scores are kept for the whole match.
+  function resetRivals() {
+    pickHomes();
+    const n = rivalCount();
+    rivals.forEach((r, k) => {
+      r.active = k < n;
+      for (const p in r.powers) r.powers[p] = 0;
+      if (r.active) spawnRival(r); else { r.state = 'out'; r.model.group.visible = false; }
+    });
+  }
+  // The RIVAL ROBOTS setting changed: add or remove rivals right away.
+  function applyRivals() {
+    const n = rivalCount();
+    rivals.forEach((r, k) => {
+      if (k < n && !r.active) { r.active = true; r.score = 0; if (g) { pickHomes(); spawnRival(r); } }
+      else if (k >= n && r.active) { r.active = false; r.state = 'out'; r.model.group.visible = false; }
+    });
+  }
+
+  // Bot input: the shared brain for pellets and danger, plus duels. Another robot in a clear line nearby
+  // makes it turn and fire after a short reaction time.
+  function rivalThink(r, dt) {
+    botSteer(r.body, r.cell, r.brain, dt, r.input);
+    const b = r.body;
+    let tgt = null, best = 40;
+    const others = [];
+    if (playerStunT <= 0 && invulnT <= 0) others.push({ x: player.x, z: player.z, jy: player.jy });
+    for (const o of rivals) if (o !== r && o.active && o.state === 'play' && o.stunT <= 0 && o.safeT <= 0) others.push({ x: o.body.x, z: o.body.z, jy: o.body.jy });
+    for (const o of others) {
+      const d = Math.hypot(o.x - b.x, o.z - b.z);
+      if (d < best && o.jy < 0.7 && clearShot(b.x, b.z, o.x, o.z)) { best = d; tgt = o; }
+    }
+    if (tgt) {
+      r.brain.seenT += dt;
+      r.input.aim = Math.atan2(-(tgt.x - b.x), -(tgt.z - b.z));
+      if (r.brain.seenT > BOT_REACT) r.input.fire = true;
+    } else { r.brain.seenT = 0; r.input.aim = null; }
+  }
+
+  // Apply a racer's input: move along the lanes, face the aim (or the way it goes), jump, shoot, use the gates.
+  function driveRacer(r, dt) {
+    const b = r.body, inp = r.input;
+    r.fireCD -= dt; r.safeT = Math.max(0, r.safeT - dt);
+    for (const k in r.powers) r.powers[k] = Math.max(0, r.powers[k] - dt);
+    if (r.stunT > 0) { r.stunT -= dt; b.moving = false; }
+    else {
+      const mx = inp.mx, mz = inp.mz, len = Math.hypot(mx, mz);
+      b.moving = len > 0.05;
+      if (b.moving) {
+        const sp = PLAYER_SPEED * RIVAL_SPEED * Math.min(1, len) * (r.powers.speed > 0 ? 1.45 : 1) * dt / len;
+        const x0 = b.x, z0 = b.z, vx = mx * sp, vz = mz * sp;
+        if (!collides(b.x + vx, b.z)) b.x += vx;
+        if (!collides(b.x, b.z + vz)) b.z += vz;
+        clampToLanes(b.x - x0, b.z - z0, b);
+        centerInLane(mx, mz, dt, 0.6, b);
+      }
+      const want = inp.aim !== null ? inp.aim : b.moving ? Math.atan2(-mx, -mz) : b.yaw;
+      let diff = want - b.yaw; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+      b.yaw += diff * Math.min(1, dt * 12);
+      if (inp.jump && b.jy === 0) b.vy = JUMP_V;
+      if (inp.fire && r.fireCD <= 0 && Math.abs(diff) < 0.2) rivalShoot(r);
+    }
+    if (b.jy > 0 || b.vy > 0) { b.vy -= GRAVITY * dt; b.jy += b.vy * dt; if (b.jy <= 0) { b.jy = 0; b.vy = 0; } }
+    if (b.x < GATE_X[0] - 0.6) { b.x += WRAP; gateFx(1); } else if (b.x > GATE_X[1] + 0.6) { b.x -= WRAP; gateFx(0); }
+    updateRacerCell(r);
+    racerPickups(r);
+  }
+  function rivalShoot(r) {
+    r.fireCD = r.powers.rapid > 0 ? 0.3 : 0.7; r.recoil = 1;
+    for (const a of r.powers.spread > 0 ? [-0.16, 0, 0.16] : [0]) spawnBolt(r.body.yaw + a, r);
+    if (Math.hypot(r.body.x - player.x, r.body.z - player.z) < 22) Sfx.shoot();
+  }
+  function racerPickups(r) {
+    const { x: cx, y: cy } = r.cell, b = r.body;
+    const dist = Math.hypot(b.x - cx * CELL, b.z - cy * CELL);
+    const k = pelletIdx[cy] ? pelletIdx[cy][cx] : -1;
+    if (k >= 0 && pelletAlive[k] && dist < 1.8) { eatPellet(k); r.score += 10; }
+    const core = cores.find(c => c.alive && c.x === cx && c.y === cy);
+    if (core && dist < 2) {
+      core.alive = false; core.grp.visible = false; core.light.intensity = 0;
+      r.score += 50; startOvercharge(r); Sfx.core(); popup(r.name + ' OVERCHARGED');
+      explode(core.grp.position, 0xff4fd8, 30, 6);
+    }
+    if (powerItem && powerItem.x === cx && powerItem.y === cy && dist < 2) collectPower(r);
+    if (crystal && crystal.x === cx && crystal.y === cy && dist < 2) collectCrystal(r);
+  }
+
+  // Hits between robots. A shot robot is stunned and loses up to SHOT_STEAL points to the shooter.
+  function shotPlayer(r) {
+    if (invulnT > 0 || playerStunT > 0 || state !== 'playing') return;
+    if (powers.shield > 0) { breakShield(); return; }
+    const steal = Math.min(score, SHOT_STEAL); score -= steal; r.score += steal;
+    stunPlayer(SHOT_STUN); popup(r.name + ' HIT YOU' + (steal ? ' -' + steal : ''));
+  }
+  function hitRival(r, owner) {
+    explode(new THREE.Vector3(r.body.x, 0.9, r.body.z), r.color, 14, 5);
+    if (r.safeT > 0 || r.stunT > 0) return;
+    if (r.powers.shield > 0) { r.powers.shield = 0; r.safeT = 1; return; }
+    const steal = Math.min(r.score, SHOT_STEAL); r.score -= steal; give(owner, steal);
+    r.stunT = SHOT_STUN;
+    if (!owner) { popup('HIT ' + r.name + (steal ? ' +' + steal : '')); Sfx.zapped(); }
+  }
+  // Caught by a drone: the rival is out for a few seconds and comes back in its corner.
+  function knockOut(r) {
+    r.state = 'out'; r.outT = RIVAL_OUT; r.model.group.visible = false;
+    explode(new THREE.Vector3(r.body.x, 0.9, r.body.z), r.color, 30, 7);
+    explode(new THREE.Vector3(r.body.x, 0.9, r.body.z), 0xffffff, 10, 4);
+    if (Math.hypot(r.body.x - player.x, r.body.z - player.z) < 25) Sfx.warp();
+  }
+  function rivalContacts() {
+    for (const r of rivals) {
+      if (!r.active || r.state !== 'play' || r.body.jy > JUMP_CLEAR) continue;
+      for (const e of enemies) {
+        if (e.state === 'dead' || e.state === 'pen') continue;
+        if (Math.hypot(e.grp.position.x - r.body.x, e.grp.position.z - r.body.z) >= 1.4) continue;
+        if (e.fright) destroyEnemy(e, r);
+        else if (e.stun <= 0 && r.safeT <= 0) {
+          if (r.powers.shield > 0) { r.powers.shield = 0; r.safeT = 1.5; explode(e.grp.position, e.def.color, 22, 6); vanish(e, 0.6, 4); }
+          else { knockOut(r); break; }
+        }
+      }
+    }
+    // Overcharged robots ram the others: a rival is knocked out, you are stunned; the rammer takes RAM_STEAL points.
+    if (overchargeT <= 0) return;
+    const racers = [{ r: null, b: player }, ...rivals.filter(r => r.active && r.state === 'play').map(r => ({ r, b: r.body }))];
+    const att = racers.find(q => q.r === chargeOwner);
+    if (!att || (!att.r && state !== 'playing')) return;
+    for (const v of racers) {
+      if (v === att || Math.hypot(v.b.x - att.b.x, v.b.z - att.b.z) >= 1.5 || v.b.jy > JUMP_CLEAR) continue;
+      if (v.r) {
+        if (v.r.safeT > 0) continue;
+        const steal = Math.min(v.r.score, RAM_STEAL); v.r.score -= steal; give(att.r, steal);
+        knockOut(v.r); if (!att.r) popup('RAMMED ' + v.r.name + (steal ? ' +' + steal : ''));
+      } else if (invulnT <= 0 && playerStunT <= 0) {
+        if (powers.shield > 0) { breakShield(); continue; }
+        const steal = Math.min(score, RAM_STEAL); score -= steal; att.r.score += steal;
+        stunPlayer(SHOT_STUN * 1.5); popup(att.r.name + ' RAMMED YOU' + (steal ? ' -' + steal : ''));
+      }
+    }
+  }
+  function updateRivals(dt) {
+    for (const r of rivals) {
+      if (!r.active) continue;
+      if (r.state === 'out') { if ((r.outT -= dt) <= 0) { spawnRival(r); beamFx(r.body.x, r.body.z, r.color, true); } continue; }
+      if (r.kind === 'bot') rivalThink(r, dt);
+      driveRacer(r, dt);
+    }
+    rivalContacts();
+  }
+  // Visuals, every frame.
+  function placeRivals(dt) {
+    for (const r of rivals) {
+      const grp = r.model.group, on = r.active && r.state === 'play';
+      grp.visible = on && !(r.safeT > 0 && Math.floor(time * 16) % 2 === 0);
+      if (!on) continue;
+      r.recoil = Math.max(0, r.recoil - dt * 8);
+      grp.position.set(r.body.x, r.body.jy, r.body.z);
+      grp.rotation.set(0, r.body.yaw, r.stunT > 0 ? Math.sin(time * 40) * 0.08 : 0);
+      r.model.setCharged(overchargeT > 0 && chargeOwner === r);
+      r.model.animate(time + r.i, dt, r.body.moving && state === 'playing', r.recoil);
+      r.shieldFx.visible = r.powers.shield > 0;
+    }
+  }
+  function eatPellet(k) {
+    pelletAlive[k] = 0; pelletsLeft--;
+    const zero = new THREE.Matrix4().makeScale(0, 0, 0);
+    pelletMesh.setMatrixAt(k, zero); pelletGlow.setMatrixAt(k, zero);
+    pelletMesh.instanceMatrix.needsUpdate = pelletGlow.instanceMatrix.needsUpdate = true;
   }
 
   // ---------- Bonus crystal ----------
@@ -3451,11 +3729,12 @@ const Models = (() => {
     Sfx.spawn(); popup('BONUS CRYSTAL!');
   }
   function removeCrystal() { if (crystal) levelGroup.remove(crystal.grp); crystal = null; }
-  function collectCrystal() {
+  function collectCrystal(r = null) {
     const pts = crystalValue();
     explode(crystal.grp.position, 0x9fe8ff, 30, 7); explode(crystal.grp.position, 0xffffff, 14, 5);
     removeCrystal();
-    addScore(pts); popup('+' + pts.toLocaleString() + ' CRYSTAL'); Sfx.crystal(); shake(0.15);
+    give(r, pts); popup((r ? r.name + ' ' : '') + '+' + pts.toLocaleString() + ' CRYSTAL'); Sfx.crystal();
+    if (!r) shake(0.15);
   }
   function updateCrystal(dt) {
     if (crystal) { if ((crystal.life -= dt) <= 0) removeCrystal(); return; }
@@ -3488,17 +3767,17 @@ const Models = (() => {
     Sfx.spawn();
   }
   function removePowerItem() { if (powerItem) levelGroup.remove(powerItem.grp); powerItem = null; }
-  function collectPower() {
+  function collectPower(r = null) {
     const { type } = powerItem, def = POWER_DEFS[type];
     explode(powerItem.grp.position, def.color, 26, 6);
     removePowerItem(); powerSpawnT = 14 + Math.random() * 8;
-    addScore(100); popup(def.name); Sfx.power();
+    give(r, 100); popup(r ? r.name + ': ' + def.name : def.name); Sfx.power();
     if (type === 'freeze') {
       enemies.forEach(e => { if (e.state === 'active' || e.state === 'leaving') e.stun = 5; });
       if (boss && boss.alive) boss.stun = 3;
       agents.forEach(a => { if (a.active && a.state !== 'gone') { a.stun = 5; if (a.state === 'aim') a.state = 'walk'; } });
       Sfx.freeze(); flash(0.4, '#9fe0ff');
-    } else powers[type] = def.dur;
+    } else (r ? r.powers : powers)[type] = def.dur;
   }
   function updatePowers(dt) {
     for (const k in powers) powers[k] = Math.max(0, powers[k] - dt);
@@ -3603,16 +3882,16 @@ const Models = (() => {
     Sfx.zapped(); flash(0.5, '#7fe8ff'); popup('STUNNED'); shake(0.45);
     explode(new THREE.Vector3(player.x, 0.9, player.z), 0x7fe8ff, 20, 5);
   }
-  function hitAgent(a) {
+  function hitAgent(a, owner = null) {
     explode(new THREE.Vector3(a.x, 1.5, a.z), 0x7fe8ff, 10, 4);
-    if (overchargeT > 0) { beamOut(a, 300); return; }
+    if (overchargeT > 0) { beamOut(a, 300, owner); return; }
     a.hp--; a.hurt = 0.18; a.stun = Math.max(a.stun, 0.45);
     if (a.state === 'aim') { a.state = 'walk'; a.cd = 1.5; }
-    if (a.hp <= 0) beamOut(a, 150); else { addScore(25); Sfx.bossHit(); }
+    if (a.hp <= 0) beamOut(a, 150, owner); else { give(owner, 25); Sfx.bossHit(); }
   }
   // Defeated agents are beamed up and come back later somewhere else.
-  function beamOut(a, pts) {
-    addScore(pts); popup('+' + pts); Sfx.beam();
+  function beamOut(a, pts, owner = null) {
+    give(owner, pts); if (!owner) popup('+' + pts); Sfx.beam();
     beamFx(a.x, a.z, a.color, false);
     a.state = 'gone'; a.goneT = 9 + Math.random() * 4; a.grp.visible = false;
   }
@@ -3714,16 +3993,16 @@ const Models = (() => {
       if (powers.shield > 0) breakShield(); else playerDie();
     }
   }
-  function hitBoss() {
+  function hitBoss(owner = null) {
     const dmg = overchargeT > 0 ? 2 : 1;
     boss.hp = Math.max(0, boss.hp - dmg); boss.hurt = 0.12;
     explode(new THREE.Vector3(boss.x, BOSS_Y, boss.z), 0xff6a30, 8, 5);
-    Sfx.bossHit(); addScore(20); shake(0.08);
+    Sfx.bossHit(); give(owner, 20); shake(0.08);
     if (!boss.rage && boss.hp <= boss.maxHp / 2) { boss.rage = true; popup('OVERSEER ENRAGED'); Sfx.rage(); shake(0.6); }
     if (boss.hp <= 0) {
       const pts = 5000 * bossNum();
       boss.alive = false; boss.dyingT = 1.8; boss.boomT = 0; invulnT = 4;
-      addScore(pts); popup('+' + pts.toLocaleString());
+      give(owner, pts); popup((owner ? owner.name + ' ' : '') + '+' + pts.toLocaleString());
       orbs.forEach(o => scene.remove(o.mesh)); orbs.length = 0;
     }
   }
@@ -3743,9 +4022,9 @@ const Models = (() => {
     }
   }
 
-  function startOvercharge() {
+  function startOvercharge(owner = null) {
     overchargeMax = overchargeT = Math.max(3, 8 - 0.6 * (level - 1)) * D().charge;
-    combo = 0; flash(0.35);
+    combo = 0; chargeOwner = owner; if (!owner) flash(0.35);
     enemies.forEach(e => {
       if (e.state === 'active' || e.state === 'leaving') {
         if (!e.fright && e.state === 'active') reverseEnemy(e);
@@ -3768,15 +4047,16 @@ const Models = (() => {
     for (const a of powers.spread > 0 ? [-0.16, 0, 0.16] : [0]) spawnBolt(player.yaw + a);
     Sfx.shoot();
   }
-  function spawnBolt(yaw) {
+  // owner: null for your shots, or the rival that fired.
+  function spawnBolt(yaw, owner = null) {
     const dx = -Math.sin(yaw), dz = -Math.cos(yaw);
-    const mesh = new THREE.Mesh(boltGeo, boltMat);
+    const mesh = new THREE.Mesh(boltGeo, owner ? owner.boltMat : boltMat);
     mesh.scale.set(1, 1, 4);
     mesh.rotation.y = yaw;
-    const third = camMode === 'third';
+    const src = owner ? owner.body : player, third = !!owner || camMode === 'third';
     const side = third ? 0 : 0.25, ahead = third ? 1.2 : 0.6;
-    const b = { mesh, x: player.x + dx * ahead + Math.cos(player.yaw) * side, z: player.z + dz * ahead - Math.sin(player.yaw) * side,
-      y: (third ? 0.5 : EYE_H - 0.3) + player.jy, dx, dz, life: 1.2 };
+    const b = { mesh, owner, x: src.x + dx * ahead + Math.cos(src.yaw) * side, z: src.z + dz * ahead - Math.sin(src.yaw) * side,
+      y: (third ? 0.5 : EYE_H - 0.3) + src.jy, dx, dz, life: 1.2 };
     mesh.position.set(b.x, b.y, b.z);
     scene.add(mesh); bolts.push(b);
   }
@@ -3791,14 +4071,23 @@ const Models = (() => {
         b.x += b.dx * st; b.z += b.dz * st;
         if (b.x < GATE_X[0] - 0.6) b.x += WRAP; else if (b.x > GATE_X[1] + 0.6) b.x -= WRAP; // bolts use the gates too
         const gx = Math.round(b.x / CELL), gz = Math.round(b.z / CELL);
-        if (solidForPlayer(gx, gz)) { dead = true; explode(new THREE.Vector3(b.x, b.y, b.z), 0x22e6ff, 6, 3); Sfx.wall(); break; }
+        if (solidForPlayer(gx, gz)) {
+          dead = true; explode(new THREE.Vector3(b.x, b.y, b.z), b.owner ? b.owner.color : 0x22e6ff, 6, 3);
+          if (!b.owner) Sfx.wall();
+          break;
+        }
         for (const e of enemies) {
           if (e.state === 'dead' || e.state === 'pen') continue;
-          if (Math.hypot(e.grp.position.x - b.x, e.grp.position.z - b.z) < 1.1) { hitEnemy(e); dead = true; break; }
+          if (Math.hypot(e.grp.position.x - b.x, e.grp.position.z - b.z) < 1.1) { hitEnemy(e, b.owner); dead = true; break; }
         }
-        if (!dead && boss && boss.alive && Math.hypot(boss.x - b.x, boss.z - b.z) < 1.9) { hitBoss(); dead = true; }
+        if (!dead && boss && boss.alive && Math.hypot(boss.x - b.x, boss.z - b.z) < 1.9) { hitBoss(b.owner); dead = true; }
         if (!dead) for (const a of agents) {
-          if (a.active && a.state !== 'gone' && Math.hypot(a.x - b.x, a.z - b.z) < 0.85) { hitAgent(a); dead = true; break; }
+          if (a.active && a.state !== 'gone' && Math.hypot(a.x - b.x, a.z - b.z) < 0.85) { hitAgent(a, b.owner); dead = true; break; }
+        }
+        // Robots: your shots hit rivals; rival shots hit you and the other rivals.
+        if (!dead && b.owner && player.jy < 0.7 && Math.hypot(player.x - b.x, player.z - b.z) < 0.9) { shotPlayer(b.owner); dead = true; }
+        if (!dead) for (const r of rivals) {
+          if (r !== b.owner && r.active && r.state === 'play' && r.body.jy < 0.7 && Math.hypot(r.body.x - b.x, r.body.z - b.z) < 0.9) { hitRival(r, b.owner); dead = true; break; }
         }
       }
       b.mesh.position.set(b.x, b.y, b.z);
@@ -3807,20 +4096,20 @@ const Models = (() => {
   }
 
   // A normal hit blasts the monster back to its pen; an overcharged hit destroys it for big points.
-  function hitEnemy(e) {
-    if (e.fright) { destroyEnemy(e); return; }
-    addScore(50); popup('+50'); shake(0.12);
+  function hitEnemy(e, owner = null) {
+    if (e.fright) { destroyEnemy(e, owner); return; }
+    give(owner, 50); if (!owner) { popup('+50'); shake(0.12); }
     explode(e.grp.position, e.def.color, 22, 6);
     explode(e.grp.position, 0xffffff, 10, 4);
     Sfx.warp();
     vanish(e, 0.6, 4);
   }
 
-  function destroyEnemy(e) {
+  function destroyEnemy(e, owner = null) {
     const pts = Math.min(1600, 200 * 2 ** combo);
-    shake(0.25);
+    if (!owner) shake(0.25);
     combo++;
-    addScore(pts); popup('+' + pts);
+    give(owner, pts); popup((owner ? owner.name + ' ' : '') + '+' + pts);
     explode(e.grp.position, e.curCol, 34, 8);
     explode(e.grp.position, 0xffffff, 12, 5);
     Sfx.kill();
@@ -3872,6 +4161,7 @@ const Models = (() => {
   // ---------- Flow ----------
   function newGame() {
     score = 0; lives = D().lives; level = 1; nextExtra = 10000;
+    rivals.forEach(r => { r.score = 0; });
     colorOffset = Math.floor(Math.random() * THEMES.length);
     buildLevel(); resetPositions();
     toReady(true);
@@ -3894,6 +4184,7 @@ const Models = (() => {
     state = 'clear'; clearT = 3;
     addScore(1000 * level);
     showMsg('SECTOR CLEAR'); Sfx.clear(); flash(0.4);
+    if (rivalsOn()) { const top = standings()[0]; el.msgSub.textContent = top.you ? 'YOU LEAD THE MATCH' : top.name + ' LEADS THE MATCH'; }
   }
 
   function gameOver() {
@@ -3904,7 +4195,8 @@ const Models = (() => {
     // Release the captured mouse so the overlay button can receive the click.
     if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
     Sfx.musicStop();
-    showOverlay('GAME OVER', `Final score ${score.toLocaleString()} · Sector ${level} · ${D().name}`, 'CLICK TO PLAY AGAIN', false);
+    const board = rivalsOn() ? ' · ' + standings().map((s, i) => `${i + 1}. ${s.name} ${s.score.toLocaleString()}`).join('  ') : '';
+    showOverlay('GAME OVER', `Final score ${score.toLocaleString()} · Sector ${level} · ${D().name}${board}`, 'CLICK TO PLAY AGAIN', false);
     if (qualifies(score)) openNameEntry();
   }
 
@@ -3932,6 +4224,7 @@ const Models = (() => {
     closeSubs();
     ovTitle.textContent = title; el.ovSub.textContent = sub; el.ovCta.textContent = touchMode ? cta.replace('CLICK', 'TAP') : cta;
     $('ovTouch').style.display = showControls ? '' : 'none';
+    $('playersRow').style.display = state === 'paused' ? 'none' : ''; // the player count is chosen before a game
     el.ovControls.style.display = showControls ? '' : 'none';
     el.overlay.classList.remove('hidden');
   }
@@ -3961,6 +4254,10 @@ const Models = (() => {
       return `<span style="color:${c};text-shadow:0 0 8px ${c}">${POWER_DEFS[k].name} ${Math.ceil(powers[k])}</span>`;
     }).join('');
     if (last.powers !== chips) { last.powers = chips; el.powers.innerHTML = chips; }
+    // Match scoreboard when rival robots play.
+    const board = rivalsOn() && state !== 'title' && !demo ? standings().map(s =>
+      `<div${s.you ? ' class="you"' : ''}><i style="background:${hexCol(s.color)};box-shadow:0 0 8px ${hexCol(s.color)}"></i>${s.name}<b>${s.score.toLocaleString()}</b></div>`).join('') : '';
+    if (last.board !== board) { last.board = board; $('board').innerHTML = board; }
     if (boss) el.bossHp.style.width = (boss.hp / boss.maxHp * 100).toFixed(1) + '%';
     el.bossbar.classList.toggle('rage', !!(boss && boss.rage));
     el.shieldFx.style.opacity = camMode === 'first' && (powers.shield > 0 || invulnT > 0) ? (invulnT > 0 ? 0.5 + Math.sin(time * 30) * 0.5 : 1) : 0;
@@ -4018,6 +4315,13 @@ const Models = (() => {
       rctx.fillStyle = boss.rage ? '#ff8a2b' : '#ff3048';
       rctx.beginPath(); rctx.arc(boss.x / CELL * RS + RS / 2, boss.z / CELL * RS + RS / 2, 5.5 + Math.sin(time * 8), 0, Math.PI * 2); rctx.fill();
     }
+    for (const r of rivals) if (r.active && r.state === 'play') {
+      const rx = r.body.x / CELL * RS + RS / 2, ry = r.body.z / CELL * RS + RS / 2;
+      rctx.save(); rctx.translate(rx, ry); rctx.rotate(Math.atan2(-Math.cos(r.body.yaw), -Math.sin(r.body.yaw)));
+      rctx.fillStyle = hexCol(r.color);
+      rctx.beginPath(); rctx.moveTo(5, 0); rctx.lineTo(-3.5, -3.5); rctx.lineTo(-1.5, 0); rctx.lineTo(-3.5, 3.5); rctx.closePath(); rctx.fill();
+      rctx.restore();
+    }
     const px = player.x / CELL * RS + RS / 2, py = player.z / CELL * RS + RS / 2;
     const a = Math.atan2(-Math.cos(player.yaw), -Math.sin(player.yaw));
     rctx.save(); rctx.translate(px, py); rctx.rotate(a);
@@ -4044,6 +4348,8 @@ const Models = (() => {
     if (e.code === 'KeyT') toggleWalls();
     if (e.code === 'KeyB') toggleBloom();
     if (e.code === 'KeyP') { if (state === 'paused') resume(); else pause(); }
+    // 1-4 on the start / game-over screen pick the number of players.
+    if (/^Digit[1-4]$/.test(e.code) && (state === 'title' || state === 'gameover') && !subOpen()) setPlayers(+e.code.slice(5));
   });
   addEventListener('keyup', e => { keys[e.code] = false; if (e.code === 'Space') shootHeld = false; });
   addEventListener('blur', () => { for (const k in keys) keys[k] = false; shootHeld = false; });
@@ -4124,6 +4430,7 @@ const Models = (() => {
     { label: 'ALIENS', get: () => (aliensOn ? 'ON' : 'OFF'), next: () => toggleAliens() },
     { label: 'WALLS', get: () => wallStyle.toUpperCase(), next: () => toggleWalls() },
     { label: 'MUSIC VOLUME', range: true, get: () => cfg.musicVol, set: v => { cfg.musicVol = v; cfg.music = v > 0; Sfx.setMusicVolume(v / 100); saveCfg(); } },
+    { label: 'PLAYERS', get: () => String(rivalCount() + 1), next: () => setPlayers((rivalCount() + 1) % 4 + 1) },
     { label: 'SOUND FX', get: () => (cfg.sound ? 'ON' : 'OFF'), next: () => { cfg.sound = !cfg.sound; Sfx.setFx(cfg.sound); saveCfg(); } },
     { label: 'BLOOM GLOW', get: () => (bloomOn ? 'ON' : 'OFF'), next: () => toggleBloom() },
     { label: 'SCREEN SHAKE', get: () => (cfg.shake ? 'ON' : 'OFF'), next: () => { cfg.shake = !cfg.shake; saveCfg(); } },
@@ -4209,6 +4516,23 @@ const Models = (() => {
   $('helpBtn').addEventListener('click', () => { Sfx.init(); showSub('help'); });
   $('helpClose').addEventListener('click', () => closeHelp());
   if (TOUCH) { let seen = false; try { seen = !!localStorage.getItem(HELP_KEY); } catch (e) { /* ignore */ } if (!seen) showSub('help'); }
+  // Start screen: 1 to 4 players. For now the other robots are computer rivals; split screen and online play
+  // will plug into the same choice later.
+  function setPlayers(n) {
+    cfg.rivals = Math.max(0, Math.min(3, n - 1)); saveCfg(); applyRivals(); renderPlayers();
+  }
+  function renderPlayers() {
+    const n = rivalCount() + 1;
+    document.querySelectorAll('#playersRow .opt').forEach(b => b.classList.toggle('on', +b.dataset.n === n));
+    $('playersNote').textContent = n === 1 ? 'Solo: just you against the drones'
+      : `You + ${n - 1} computer robot${n > 2 ? 's' : ''} (${rivals.slice(0, n - 1).map(r => r.name).join(', ')})`;
+  }
+  $('playersRow').addEventListener('click', ev => {
+    ev.stopPropagation();
+    const b = ev.target.closest('.opt');
+    if (b) { Sfx.init(); setPlayers(+b.dataset.n); }
+  });
+  renderPlayers();
   $('setClose').addEventListener('click', () => closeSubs());
   $('hsClose').addEventListener('click', () => closeSubs());
   $('nameOk').addEventListener('click', () => submitName());
@@ -4385,13 +4709,14 @@ const Models = (() => {
     fireCD -= dt;
     if (demo) demoThink(dt);
     updatePlayer(dt);
+    updateRivals(dt);
     updatePowers(dt);
     updateCrystal(dt);
     if (shootHeld || pad.fire || touch.fire) shoot();
     if (overchargeT > 0) {
       overchargeT -= dt; pulseT -= dt;
       if (pulseT <= 0) { pulseT = 0.24; Sfx.pulse(Math.floor(time * 4) % 2 === 0); }
-      if (overchargeT <= 0) { overchargeT = 0; enemies.forEach(e => { e.fright = false; }); }
+      if (overchargeT <= 0) { overchargeT = 0; chargeOwner = null; enemies.forEach(e => { e.fright = false; }); }
     } else {
       modeT += dt;
       if (modeIdx < MODES.length - 1 && modeT >= MODES[modeIdx][1]) { modeT = 0; modeIdx++; }
@@ -4447,6 +4772,7 @@ const Models = (() => {
       const s = 1 + Math.sin(time * 5) * 0.15; c.inner.scale.setScalar(s);
     }
     for (const e of enemies) placeEnemy(e, dt);
+    placeRivals(dt);
     if (crystal) {
       crystal.gem.rotation.y += dt * 2.4; crystal.sparks.rotation.y -= dt * 3;
       crystal.grp.position.y = 1.3 + Math.sin(time * 3) * 0.15;
@@ -4507,7 +4833,7 @@ const Models = (() => {
         robot.group.rotation.y += k * k * 12;
         robot.group.scale.setScalar(Math.max(0.05, 1 - k));
       } else robot.group.scale.setScalar(1);
-      robot.setCharged(overchargeT > 0);
+      robot.setCharged(overchargeT > 0 && !chargeOwner);
       robot.animate(time, dt, player.moving && state === 'playing', recoil);
       playerLight.position.set(player.x - Math.sin(player.yaw) * 2, 3.2 + player.jy, player.z - Math.cos(player.yaw) * 2);
     } else {
@@ -4537,10 +4863,11 @@ const Models = (() => {
     }
     updateCutaway(dt, camera.position.x, camera.position.y, camera.position.z);
     gun.position.set(0.2 + Math.cos(player.bob * 0.5) * (player.moving ? 0.006 : 0), -0.19 + bob * 0.2, -0.42 + recoil * 0.06);
-    gunMat.emissive.setHex(overchargeT > 0 ? 0xff4fd8 : 0x22e6ff);
-    gunMat.emissiveIntensity = overchargeT > 0 ? 0.9 : 0.25;
-    gunTip.material.color.setHex(overchargeT > 0 ? 0xff4fd8 : 0x22e6ff);
-    boltMat.color.setHex(overchargeT > 0 ? 0xffb0f0 : 0xaef9ff);
+    const myCharge = overchargeT > 0 && !chargeOwner;
+    gunMat.emissive.setHex(myCharge ? 0xff4fd8 : 0x22e6ff);
+    gunMat.emissiveIntensity = myCharge ? 0.9 : 0.25;
+    gunTip.material.color.setHex(myCharge ? 0xff4fd8 : 0x22e6ff);
+    boltMat.color.setHex(myCharge ? 0xffb0f0 : 0xaef9ff);
 
     drawRadar();
     updateHUD(dt);
@@ -4562,8 +4889,14 @@ const Models = (() => {
     mapMarker.visible = state !== 'dying';
     mapMarker.position.set(player.x, 0.12 + player.jy, player.z);
     mapMarker.scale.setScalar(1 + Math.sin(time * 6) * 0.12);
+    for (const r of rivals) {
+      r.marker.visible = r.active && r.state === 'play';
+      r.marker.position.set(r.body.x, 0.12 + r.body.jy, r.body.z);
+      r.marker.scale.setScalar(0.85 + Math.sin(time * 6 + r.i) * 0.1);
+    }
     renderWith(mapCam);
     scene.fog.density = fogD; mapMarker.visible = false;
+    for (const r of rivals) r.marker.visible = false;
     robot.group.visible = third; gun.visible = !third;
     const r = pipRect(), y = innerHeight - r.y - r.h;
     renderer.setScissorTest(true);
@@ -4632,6 +4965,10 @@ const Models = (() => {
     get state() { return state; }, get score() { return score; }, get pellets() { return pelletsLeft; },
     mazeHash: () => g.map(r => r.join("")).join("|"), get jumpHeight() { return player.jy; }, jump: () => { jumpQueued = true; },
     enemies: () => enemies.map(e => ({ name: e.def.name, state: e.state, cell: [e.cx, e.cy], fright: e.fright, stun: +e.stun.toFixed(2) })),
+    rivals: () => rivals.map(r => ({ fire: r.input.fire, aim: r.input.aim, seen: +r.brain.seenT.toFixed(2), cd: +r.fireCD.toFixed(2), yaw: +r.body.yaw.toFixed(2), name: r.name, active: r.active, state: r.state, score: r.score, cell: [r.cell.x, r.cell.y], stun: +r.stunT.toFixed(2), pos: [+r.body.x.toFixed(2), +r.body.z.toFixed(2)] })),
+    setRivals: n => { cfg.rivals = n; applyRivals(); },
+    placeRival: (i, cx, cy, yaw = 0) => { const r = rivals[i]; Object.assign(r.body, { x: cx * CELL, z: cy * CELL, yaw }); r.safeT = 0; updateRacerCell(r, true); },
+    get stunned() { return playerStunT; },
     enemyPos: () => enemies.map(e => ({ s: e.state, x: lerp(e.cx, e.nx, e.t), y: lerp(e.cy, e.ny, e.t), dx: e.nx - e.cx, dy: e.ny - e.cy })),
     lanePlayer: () => ({ offX: +(player.x / CELL - Math.round(player.x / CELL)).toFixed(3), offZ: +(player.z / CELL - Math.round(player.z / CELL)).toFixed(3) }),
     player: () => ({ x: +player.x.toFixed(2), z: +player.z.toFixed(2), cell: playerCell }),
